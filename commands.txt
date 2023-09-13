@@ -1,0 +1,153 @@
+set the master slave connections with host name 
+
+vi /etc/hosts 
+
+pvt ip master  # ex - 172.31.62.34 master 
+
+pvt ip slave #  172.31.33.128 slave
+
+---------------------
+
+Set up the repository
+
+
+
+sudo yum install -y yum-utils
+
+sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+
+
+
+
+Install Docker Engine
+
+Install Docker Engine, containerd, and Docker Compose:
+
+
+
+sudo yum install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+
+
+sudo systemctl start docker
+
+sudo systemctl enable docker
+
+
+
+--------------------------------
+
+Installing kubeadm, kubelet and kubectl
+
+You will install these packages on all of your machines:
+
+
+
+kubeadm: the command to bootstrap the cluster.
+
+
+
+kubelet: the component that runs on all of the machines in your cluster and does things like starting pods and containers.
+
+
+
+kubectl: the command line util to talk to your cluster.
+
+
+
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+
+[kubernetes]
+
+name=Kubernetes
+
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+
+enabled=1
+
+gpgcheck=1
+
+gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+
+exclude=kubelet kubeadm kubectl
+
+EOF
+
+
+
+# Set SELinux in permissive mode (effectively disabling it)
+
+sudo setenforce 0
+
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+--------------------------------------
+
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+
+
+sudo systemctl enable --now kubelet
+
+
+
+kubeadm init --pod-network-cidr=192.168.0.0/16  (only in master) 
+
+ (it will show error of container runtime ) 
+
+run these commands 
+
+
+
+rm /etc/containerd/config.toml
+
+systemctl restart containerd 
+
+echo '1' > /proc/sys/net/ipv4/ip_forward 
+
+
+
+modprobe bridge 
+
+modprobe br_netfilter 
+
+kubeadm init --pod-network-cidr=192.168.0.0/16
+
+it will give token 
+
+save this token in other location 
+
+kubeadm join 172.31.30.9:6443 --token 14bse9.sqe7tmwzyulusa5g \
+
+    --discovery-token-ca-cert-hash sha256:63b56e9ee17560a5990a645869c6f1509c7d86cdffb2b9c6c5b83ef3d37f998a
+
+
+
+# Create calico network 
+
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/tigera-operator.yaml
+
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.26.0/manifests/custom-resources.yaml
+
+
+
+-----------------------------
+
+Now reapeat all commands in slave machine except 
+
+kubeadm init --pod-network-cidr=192.168.0.0/16 
+
+and 
+
+calico network 
+
+
+
+copy token from master machine and paste and enter 
+
+Now go to master machine and 
+
+kubectl get node 
+
+kubectl -n kube-system get pods 
