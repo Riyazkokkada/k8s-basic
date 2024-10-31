@@ -1,4 +1,4 @@
-set the master slave connections with host name 
+set the master slave connections with host name ...
 
 vi /etc/hosts 
 
